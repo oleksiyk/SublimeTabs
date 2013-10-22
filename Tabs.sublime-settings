@@ -10,7 +10,7 @@
   "keep_accessed_in": 60,
 
   // Do not close any files if the are less the N tabs open
-  "keep_tabs" : 8,
+  "keep_tabs" : 10,
 
   // Autocomplete within all currently open files
   "autocomplete_open_files": true,
