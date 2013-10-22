@@ -12,7 +12,7 @@ Clone this repo into Sublime Text 3 `Packages` folder
 
 Settings
 ------------
-```json
+```javascript
 {
 
   // enable auto closing of tabs
