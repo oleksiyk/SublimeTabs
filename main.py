@@ -1,17 +1,21 @@
 import sublime, sublime_plugin, os, time
-from os.path import expanduser
+
+settings = {}
+
+def plugin_loaded():
+    global settings
+    settings = sublime.load_settings("Tabs.sublime-settings")
 
 class Tabs(sublime_plugin.EventListener):
 
     def on_activated_async(self, view):
-        if ( sublime.load_settings("Tabs.sublime-settings").get("filename_in_statusbar") ):
-            home = expanduser("~")
+        if ( settings.get("filename_in_statusbar") ):
+            home = os.path.expanduser("~")
             filename = view.file_name()
             if filename:
                 view.set_status('zTabs-FilePath', filename.replace(home, '~'))
 
     def on_new(self, view):
-        settings = sublime.load_settings("Tabs.sublime-settings")
         if ( settings.get("close_tabs") ):
             modifiedTTL = int(settings.get('keep_modified_in'))
             accessedTTL = int(settings.get('keep_accessed_in'))
@@ -47,11 +51,12 @@ class Tabs(sublime_plugin.EventListener):
                     window.run_command('close_file')
 
     def on_query_completions(self, view, prefix, locations):
-        completions = []
-        for oView in sublime.active_window().views():
-            if( oView.settings().get('syntax') == view.settings().get('syntax')):
-                completions += [item for item in oView.extract_completions(prefix) if len(item) > 3 and len(item) < 50 and not item in completions]
+        if ( settings.get("autocomplete_open_files") ):
+            completions = []
+            for oView in sublime.active_window().views():
+                if( oView.settings().get('syntax') == view.settings().get('syntax') and oView != view):
+                    completions += [(item, item) for item in oView.extract_completions(prefix) if len(item) > 3 and len(item) < 50]
 
-        completions = [(item, item) for item in completions]
-        return completions
+            completions = list(set(completions)) # unique
+            return completions
 
