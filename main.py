@@ -2,9 +2,23 @@ import sublime, sublime_plugin, os, time
 
 settings = {}
 
+MAX_VIEWS = 20
+MIN_WORD_SIZE = 3
+MAX_WORD_SIZE = 50
+
 def plugin_loaded():
     global settings
     settings = sublime.load_settings("Tabs.sublime-settings")
+
+
+def filter_completions(completions):
+    result = []
+    used_words = []
+    for w, v in completions:
+        if w not in used_words and MIN_WORD_SIZE <= len(w) <= MAX_WORD_SIZE:
+            used_words.append(w)
+            result.append((w, v))
+    return result
 
 class Tabs(sublime_plugin.EventListener):
 
@@ -52,11 +66,28 @@ class Tabs(sublime_plugin.EventListener):
 
     def on_query_completions(self, view, prefix, locations):
         if ( settings.get("autocomplete_open_files") ):
-            completions = []
-            for oView in sublime.active_window().views():
-                if( oView.settings().get('syntax') == view.settings().get('syntax') and oView != view):
-                    completions += [(item, item) for item in oView.extract_completions(prefix) if len(item) > 3 and len(item) < 50]
+            words = []
+            views = sublime.active_window().views()
+            views = [view] + views
+            views = views[0:MAX_VIEWS]
+            for oView in views:
+                if( oView.settings().get('syntax') == view.settings().get('syntax')):
+                    if len(locations) > 0 and oView.id == view.id:
+                        words += [(item, oView) for item in oView.extract_completions(prefix, locations[0])]
+                    else:
+                        words += [(item, oView) for item in oView.extract_completions(prefix)]
 
-            completions = list(set(completions)) # unique
+            # words = list(set(words)) # unique
+            words = filter_completions(words)
+
+            completions = []
+            for w, v in words:
+                trigger = w
+                contents = w.replace('$', '\\$')
+                if v.id != view.id and v.file_name():
+                    trigger += '\t(%s)' % os.path.basename(v.file_name())
+                completions.append((trigger, contents))
+
+            # print(completions)
             return completions
 
